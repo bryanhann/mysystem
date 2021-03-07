@@ -1,8 +1,30 @@
 #!/bin/sh
-[ "$0" == "./system" ] || { echo 'try ./system'; exit; }
+[ "$0" == "./system" ] || { echo "try './system'"; exit; }
 
-usage () {
-cat << HEREDOC
+_export () { export $1=$2; }
+
+_export borg            ${HOME}/new.borg
+_export borg_url        https://github.com/bryanhann/dot.borg
+_export borg_branch     myborg
+_export conf            ~/.config/myborg
+_export conf_branch     main
+_export conf_url        https://github.com/bryanhann/dot.config.myborg
+_export vard            ~/.local/var/myborg
+
+if [ "$1" == "install" ]; then
+        for word in $*; do
+                [ "$word" == "-b" ] && rm -rf ${borg}
+                [ "$word" == "-c" ] && rm -rf ${conf}
+        done
+        git clone -b ${borg_branch} ${borg_url} ${borg}
+        git clone -b ${conf_branch} ${conf_url} ${conf}
+        >/dev/null pushd ${borg}
+        ./install.sh install $*
+        >/dev/null popd
+        exit
+fi
+
+cat << __HEREDOC
 USAGE:
     ./system install [OPTIONS]
 
@@ -17,38 +39,5 @@ OPTIONS:
     -b overwrite [${borg}]
     -c overwrite [${conf}]
     -v overwrite [${vard}]
-HEREDOC
-}
-
-install () {
-    for word in $*; do
-        [ "$word" == "-b" ] && rm -rf ${borg}
-        [ "$word" == "-c" ] && rm -rf ${conf}
-        [ "$word" == "-v" ] && rm -rf ${vard}
-    done
-    [ ! -d ${borg} ] && git clone -b myborg https://github.com/bryanhann/dot.borg            ${borg}
-    [ ! -d ${conf} ] && git clone           https://github.com/bryanhann/dot.config.myborg   ${conf}
-    echo $this: installing the borg
-    >/dev/null pushd ${borg}
-    ./install.sh
-    >/dev/null popd
-    echo $this: restart the system
-}
-
-##################################################################
-# MAIN
-##################################################################
-
-borg=${HOME}/new.borg
-conf=~/.config/myborg
-vard=~/.local/var/myborg
-this=${PWD}/$(basename $0)
-case ${1}. in
-    install.)
-        install $*
-        ;;
-    *)
-        usage
-        ;;
-esac
+__HEREDOC
 
