@@ -1,45 +1,54 @@
 #!/bin/sh
-
-
-main () {
-    [ ! "$1" == "--install" ] && usage || doit $*
-}
-
-doit () {
-    local borg=${HOME}/new.borg
-    local conf=~/.config/myborg
-    for word in $*; do
-        [ "$word" == "--newborg" ] && rm -rf ${borg}
-        [ "$word" == "--newconf" ] && rm -rf ${conf}
-    done
-    [ ! -d ${borg} ] && git clone -b myborg https://github.com/bryanhann/dot.borg            ${borg}
-    [ ! -d ${conf} ] && git clone           https://github.com/bryanhann/dot.config.myborg   ${conf}
-    echo 6
-    local here=$PWD
-    cd ${borg}
-    ./install.sh
-    cd ${here}
-    echo restart.
-}
+[ "$0" == "./system" ] || { echo 'try ./system'; exit; }
 
 usage () {
 cat << HEREDOC
 USAGE:
-    ./system [--install [ --newborg ] [ --newconf ] ]
+    ./system install [OPTIONS]
 
     Installation will do the following:
-        Clone dot.config.myborg to [~/.config/myborg]
-        Clone dot.borg to [~/new.borg]
-        Install [~/new.borg]
+        Clone a stable conf to [${conf}]
+        Clone a stable borg to [${borg}]
+        Install the stable borg.
 
    Nothing will be overwritten unless overwrite options are supplied.
 
 OPTIONS:
-    --install   actually install. This must come first.
-    --newborg   overwrite [~/new.borg]
-    --newconf   overwrite [~/.config/myborg]
-
+    -b overwrite [${borg}]
+    -c overwrite [${conf}]
+    -v overwrite [${vard}]
 HEREDOC
 }
 
-main $*
+install () {
+    for word in $*; do
+        [ "$word" == "-b" ] && rm -rf ${borg}
+        [ "$word" == "-c" ] && rm -rf ${conf}
+        [ "$word" == "-v" ] && rm -rf ${vard}
+    done
+    [ ! -d ${borg} ] && git clone -b myborg https://github.com/bryanhann/dot.borg            ${borg}
+    [ ! -d ${conf} ] && git clone           https://github.com/bryanhann/dot.config.myborg   ${conf}
+    echo $this: installing the borg
+    >/dev/null pushd ${borg}
+    ./install.sh
+    >/dev/null popd
+    echo $this: restart the system
+}
+
+##################################################################
+# MAIN
+##################################################################
+
+borg=${HOME}/new.borg
+conf=~/.config/myborg
+vard=~/.local/var/myborg
+this=${PWD}/$(basename $0)
+case ${1}. in
+    install.)
+        install $*
+        ;;
+    *)
+        usage
+        ;;
+esac
+
